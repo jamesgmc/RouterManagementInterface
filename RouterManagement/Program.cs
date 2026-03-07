@@ -9,7 +9,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+builder.Services.AddSignalR();
 builder.Services.AddSingleton<StatusService>();
+builder.Services.AddHostedService<HostUpdateBackgroundService>();
 
 // Configure API URL and Mock setting
 var useMockService = builder.Configuration.GetValue<bool>("UseMockService");
@@ -42,5 +44,6 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 app.MapBlazorHub();
+app.MapHub<HostUpdateHub>("/hostUpdateHub");
 app.MapFallbackToPage("/_Host");
 app.Run();
