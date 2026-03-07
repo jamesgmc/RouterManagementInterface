@@ -1,0 +1,69 @@
+﻿@inherits LayoutComponentBase
+@inject IJSRuntime JS
+
+<PageTitle>RouterManagement</PageTitle>
+
+<div class="relative flex flex-col items-center justify-start p-4 dark:bg-gray-900 dark:text-white min-h-screen" id="app-container">
+    <StatusBanner StatusMessage="@StatusMessage" />
+
+    <div class="absolute top-4 right-4">
+        <button @onclick="ToggleDarkMode" class="px-4 py-2 rounded bg-gray-200 dark:bg-gray-800 dark:text-white">
+            @currentThemeText
+        </button>
+    </div>
+
+    <h2 class="text-5xl font-bold mb-4 text-sky-700 dark:text-sky-100">🌐 Router Hosts 🌐</h2>
+
+    @Body
+</div>
+
+@code {
+    private bool isDarkMode;
+    private string currentThemeText;
+    private bool _firstRender = true;
+
+    private string StatusMessage { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _firstRender)
+        {
+            _firstRender = false;
+
+            // Check if dark mode is already enabled
+            var theme = await JS.InvokeAsync<string>("localStorage.getItem", "theme");
+            isDarkMode = theme == "dark";
+            await UpdateTheme();
+            StateHasChanged(); // Re-render to reflect the theme changes
+        }
+    }
+
+    private async Task ToggleDarkMode()
+    {
+        isDarkMode = !isDarkMode;
+        await UpdateTheme();
+
+        // Store the preference in localStorage
+        await JS.InvokeVoidAsync("localStorage.setItem", "theme", isDarkMode ? "dark" : "light");
+    }
+
+    private async Task UpdateTheme()
+    {
+        currentThemeText = isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode";
+
+        if (isDarkMode)
+        {
+            await JS.InvokeVoidAsync("document.documentElement.classList.add", "dark");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("document.documentElement.classList.remove", "dark");
+        }
+    }
+
+    public void ShowStatusMessage(string message)
+    {
+        StatusMessage = message;
+        InvokeAsync(StateHasChanged);
+    }
+}

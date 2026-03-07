@@ -1,0 +1,50 @@
+﻿@inherits Microsoft.AspNetCore.Components.ComponentBase
+@inject RouterManagement.Services.StatusService StatusService;
+
+@if (!string.IsNullOrEmpty(StatusMessage))
+{
+    <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+        <div class="@StatusColor text-white px-4 py-2 rounded shadow-md text-4xl">
+            @StatusMessage
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string StatusMessage { get; set; }
+
+    [Parameter]
+    public string StatusColor { get; set; }
+
+    private System.Timers.Timer statusTimer;
+
+    protected override void OnInitialized()
+    {
+        statusTimer = new System.Timers.Timer(2000);
+        statusTimer.Elapsed += OnStatusTimerElapsed;
+        statusTimer.AutoReset = false;
+
+        StatusService.OnStatusMessageChanged += (message, statusColor) =>
+        {
+            SetStatusMessage(message, statusColor);
+        };
+    }
+
+    public void SetStatusMessage(string message, string statusColor = "bg-blue-500")
+    {
+        StatusMessage = message;
+        StatusColor = statusColor;
+        statusTimer.Stop(); // If we multiple click and dont stop and start then first click timer will call elapsed and remove message early.
+        statusTimer.Start();
+        InvokeAsync(StateHasChanged); // Re-render the component
+    }
+
+    private void OnStatusTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
+    {
+        StatusMessage = string.Empty;
+        StatusColor = string.Empty;
+        statusTimer.Stop();
+        InvokeAsync(StateHasChanged); // Re-render the component
+    }
+}

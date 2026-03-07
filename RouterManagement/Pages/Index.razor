@@ -1,0 +1,218 @@
+﻿@page "/"
+@using RouterManagement.Data
+@using RouterManagement.Data.Models
+@using RouterManagement.Data.Services
+@inject IHostManagementService hostManagementService
+@implements IDisposable
+
+@if (_hostData != null && _hostData.Success)
+{
+    <div class="flex flex-col items-center my-4 p-4 bg-gray-100 dark:bg-gray-800 rounded w-full max-w-4xl">
+        <div class="flex items-center">
+            <label class="mr-4 text-lg" for="toggleSwitch">Blacklist Status</label>
+            <input class="ml-2 accent-red-500 dark:bg-red-800 dark:border-red-800" type="checkbox" id="toggleSwitch" @bind="_hostData.BlackListEnabled" @onclick="() => ToggleBlackListStatus(_hostData)" />
+            <span class="ml-2 text-lg">@(_hostData.BlackListEnabled ? "Enabled" : "Disabled")</span>
+        </div>
+    </div>
+
+    <table class="table-auto w-full mt-4 font-mono">
+        <thead>
+            <tr>
+                <th class="px-4 py-2 text-center cursor-pointer">Count</th>
+                <th class="px-4 py-2 text-center cursor-pointer" @onclick="() => SortTable(nameof(RouterHost.Hostname))">
+                    Hostname
+                    @if (_sortColumn == nameof(RouterHost.Hostname))
+                    {
+                        <span>@(_sortAscending ? "↑" : "↓")</span>
+                    }
+                </th>
+                <th class="px-4 py-2 text-center cursor-pointer" @onclick="() => SortTable(nameof(RouterHost.IsOnline))">
+                    Online
+                    @if (_sortColumn == nameof(RouterHost.IsOnline))
+                    {
+                        <span>@(_sortAscending ? "↑" : "↓")</span>
+                    }
+                </th>
+                <th class="px-4 py-2 text-center cursor-pointer" @onclick="() => SortTable(nameof(RouterHost.ConnectionType))">
+                    Type
+                    @if (_sortColumn == nameof(RouterHost.ConnectionType))
+                    {
+                        <span>@(_sortAscending ? "↑" : "↓")</span>
+                    }
+                </th>
+                <th class="px-4 py-2 text-center cursor-pointer" @onclick="() => SortTable(nameof(RouterHost.IsBlackListed))">
+                    Blacklisted
+                    @if (_sortColumn == nameof(RouterHost.IsBlackListed))
+                    {
+                        <span>@(_sortAscending ? "↑" : "↓")</span>
+                    }
+                </th>
+                <th class="px-4 py-2 text-center cursor-pointer" @onclick="() => SortTable(nameof(RouterHost.IP))">
+                    IP
+                    @if (_sortColumn == nameof(RouterHost.IP))
+                    {
+                        <span>@(_sortAscending ? "↑" : "↓")</span>
+                    }
+                </th>
+                <th class="px-4 py-2 text-center cursor-pointer" @onclick="() => SortTable(nameof(RouterHost.Mac))">
+                    MAC
+                    @if (_sortColumn == nameof(RouterHost.Mac))
+                    {
+                        <span>@(_sortAscending ? "↑" : "↓")</span>
+                    }
+                </th>
+                <th class="px-4 py-2 text-center cursor-pointer" @onclick="() => SortTable(nameof(RouterHost.Lease))">
+                    DHCP
+                    @if (_sortColumn == nameof(RouterHost.Lease))
+                    {
+                        <span>@(_sortAscending ? "↑" : "↓")</span>
+                    }
+                </th>
+                <th class="px-4 py-2 text-center cursor-pointer">Packets Received</th>
+                <th class="px-4 py-2 text-center cursor-pointer">Packets Sent</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @{
+                ResetCounter();
+            }
+            @foreach (var host in _hostData.HostList)
+            {
+                <tr>
+                    <td class="border px-4 py-2 w-24 text-center">@IncrementCounter()</td>
+                    <td class="border px-4 py-2 w-24 text-center">
+                        <TextEditor TModel="RouterHost" Model="host" CurrentValue="@host.Hostname" EditInitialValue="@host.Hostname" OnValueUpdated="HandleHostnameValueUpdated"></TextEditor>
+                    </td>
+                    <td class="border px-4 py-2 w-24 text-center">
+                        <span class="inline-block w-3 h-3 rounded-full @(host.IsOnline ? "bg-green-500" : "bg-red-500")"></span>
+                    </td>
+                    <td class="border px-4 py-2 w-24 text-center">@host.ConnectionType</td>
+                    <td class="border px-4 py-2 w-24 text-center">
+                        <input class="ml-2 accent-red-500 dark:bg-red-800 dark:border-red-800" type="checkbox" @bind="host.IsBlackListed" @onclick="() => ToggleBlacklist(host)" />
+                    </td>
+                    <td class="border px-4 py-2 w-24 text-center">@host.IP</td>
+                    <td class="border px-4 py-2 w-24 text-center">@host.Mac</td>
+                    <td class="border px-4 py-2 w-24 text-center">
+                        <TextEditor TModel="RouterHost" Model="host" CurrentValue="@host.Lease" EditInitialValue="@host.IP" OnValueUpdated="HandleDHCPValueUpdated"></TextEditor>
+                    </td>
+                    <td class="border px-4 py-2 w-24 text-center">@host.PacketCountReceived</td>
+                    <td class="border px-4 py-2 w-24 text-center">@host.PacketCountSent</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    if (_hostData == null)
+    {
+        <p>Loading...</p>
+    }
+    else
+    {
+        <p>@_hostData.Error</p>
+    }
+}
+
+@code {
+    #region Fields
+    private RouterHosts _hostData;
+    private int _counter = 1;
+    private Timer _timer;
+    private string _sortColumn = "Counter";
+    private bool _sortAscending = true;
+    #endregion
+
+    #region OnInitializedAsync
+    protected override async Task OnInitializedAsync()
+    {
+        _hostData = await hostManagementService.GetDevicesAsync();
+        _timer = new Timer(async _ => await UpdateHostPacketCounters(), null, 0, 5000);
+    }
+    #endregion
+
+    #region Dispose
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
+    #endregion
+
+    #region Host Packet Counters
+    private async Task UpdateHostPacketCounters()
+    {
+        await hostManagementService.HostPacketCountersAsync(_hostData);
+        await InvokeAsync(StateHasChanged);
+    }
+    #endregion
+
+    #region Counter for Count Column
+    protected void ResetCounter()
+    {
+        _counter = 1;
+    }
+
+    protected int IncrementCounter()
+    {
+        return _counter++;
+    }
+    #endregion
+
+    #region Blacklist Management
+    protected async void ToggleBlackListStatus(RouterHosts host)
+    {
+        await hostManagementService.ToggleBlackListAsync(!host.BlackListEnabled);
+    }
+
+    private async void ToggleBlacklist(RouterHost device)
+    {
+        if (!device.IsBlackListed)
+        {
+            await hostManagementService.AddToBlackListAsync(device);
+        }
+        else
+        {
+            await hostManagementService.RemoveFromBlackListAsync(device);
+        }
+
+        StateHasChanged();
+    }
+    #endregion
+
+    #region Hostname, DHCP Text
+    private async void HandleHostnameValueUpdated(TextEditorUpdateModel<RouterHost> result)
+    {
+        await hostManagementService.SetHostnameAsync(result.NewValue, result.Model);
+    }
+
+    private void HandleDHCPValueUpdated(TextEditorUpdateModel<RouterHost> result)
+    {
+        Console.WriteLine($"Updated value:");
+    }
+    #endregion
+
+    #region Sort Table Columns
+    private void SortTable(string column)
+    {
+        if (_sortColumn == column)
+        {
+            _sortAscending = !_sortAscending;
+        }
+        else
+        {
+            _sortColumn = column;
+            _sortAscending = true;
+        }
+
+        _hostData.HostList = _sortAscending
+            ? _hostData.HostList.OrderBy(x => GetPropertyValue(x, column)).ToList()
+            : _hostData.HostList.OrderByDescending(x => GetPropertyValue(x, column)).ToList();
+    }
+
+    private object GetPropertyValue(RouterHost host, string propertyName)
+    {
+        return typeof(RouterHost).GetProperty(propertyName).GetValue(host);
+    }
+    #endregion
+}

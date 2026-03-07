@@ -1,0 +1,68 @@
+﻿@using RouterManagement.Data
+@using RouterManagement.Data.Models
+@typeparam TModel
+@inherits Microsoft.AspNetCore.Components.ComponentBase
+
+<div class="flex items-center">
+    @if (!isEditing)
+    {
+        <div class="flex-1">@CurrentValue</div>
+        <button class="p-0.5 bg-blue-500 text-white rounded text-[0.65rem]" @onclick="() => ToggleEdit()">Edit</button>
+    }
+    else
+    {
+        <input class="p-1 border rounded text-xs text-black dark:text-white dark:bg-gray-800" type="text" @bind="newValue" style="width: 100%; box-sizing: border-box;" />
+        <button class="p-0.5 bg-green-500 text-white rounded text-[0.65rem] mx-2" @onclick="Update">Update</button>
+        <button class="p-0.5 bg-red-500 text-white rounded text-[0.65rem]" @onclick="CancelEdit">Cancel</button>
+    }
+</div>
+
+@code {
+    private bool isEditing = false;
+
+    [Parameter]
+    public string CurrentValue { get; set; }
+
+    [Parameter]
+    public string EditInitialValue { get; set; }
+
+    [Parameter]
+    public TModel Model { get; set; }
+
+    [Parameter]
+    public EventCallback<TextEditorUpdateModel<TModel>> OnValueUpdated { get; set; }
+
+    private string newValue;
+
+    private void ToggleEdit()
+    {
+        if (!isEditing)
+        {
+            isEditing = true;
+            newValue = EditInitialValue;
+        }
+        else
+        {
+            isEditing = false;
+            newValue = null;
+        }
+    }
+
+    private void CancelEdit()
+    {
+        isEditing = false;
+        newValue = null;
+    }
+
+    private async Task Update()
+    {
+        if (newValue != null)
+        {
+            // Notify the parent component about the new value
+            await OnValueUpdated.InvokeAsync(new TextEditorUpdateModel<TModel>() { Model = Model, NewValue = newValue });
+
+            isEditing = false;
+            newValue = null;
+        }
+    }
+}
