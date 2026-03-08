@@ -77,8 +77,10 @@ namespace RouterManagement.Data.Models
         [JsonPropertyName("blackListName")]
         public string BlackListName { get; set; }
 
+        [JsonPropertyName("packetCountReceived")]
         public int PacketCountReceived { get; set; }
 
+        [JsonPropertyName("packetCountSent")]
         public int PacketCountSent {  get; set; }
     }
 }

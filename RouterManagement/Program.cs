@@ -3,12 +3,14 @@ using Microsoft.AspNetCore.Components.Web;
 using RouterManagement.Data;
 using RouterManagement.Data.Services;
 using RouterManagement.Services;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+builder.Services.AddMudServices();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<StatusService>();
 builder.Services.AddHostedService<HostUpdateBackgroundService>();

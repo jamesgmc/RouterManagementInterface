@@ -1,19 +1,19 @@
-﻿@using RouterManagement.Data
+@using RouterManagement.Data
 @using RouterManagement.Data.Models
 @typeparam TModel
 @inherits Microsoft.AspNetCore.Components.ComponentBase
 
-<div class="flex items-center">
+<div class="d-flex align-center w-100">
     @if (!isEditing)
     {
-        <div class="flex-1">@CurrentValue</div>
-        <button class="p-0.5 bg-blue-500 text-white rounded text-[0.65rem]" @onclick="() => ToggleEdit()">Edit</button>
+        <div class="flex-grow-1">@CurrentValue</div>
+        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" OnClick="ToggleEdit" />
     }
     else
     {
-        <input class="p-1 border rounded text-xs text-black dark:text-white dark:bg-gray-800" type="text" @bind="newValue" style="width: 100%; box-sizing: border-box;" />
-        <button class="p-0.5 bg-green-500 text-white rounded text-[0.65rem] mx-2" @onclick="Update">Update</button>
-        <button class="p-0.5 bg-red-500 text-white rounded text-[0.65rem]" @onclick="CancelEdit">Cancel</button>
+        <MudTextField @bind-Value="newValue" T="string" Margin="Margin.Dense" Variant="Variant.Outlined" Class="mr-2" />
+        <MudIconButton Icon="@Icons.Material.Filled.Check" Size="Size.Small" Color="Color.Success" OnClick="Update" />
+        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error" OnClick="CancelEdit" />
     }
 </div>
 

@@ -1,13 +1,11 @@
-﻿@inherits Microsoft.AspNetCore.Components.ComponentBase
+@inherits Microsoft.AspNetCore.Components.ComponentBase
 @inject RouterManagement.Services.StatusService StatusService;
 
 @if (!string.IsNullOrEmpty(StatusMessage))
 {
-    <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-        <div class="@StatusColor text-white px-4 py-2 rounded shadow-md text-4xl">
-            @StatusMessage
-        </div>
-    </div>
+    <MudAlert Severity="@(StatusColor == "bg-red-500" ? Severity.Error : Severity.Info)" Variant="Variant.Filled" ContentAlignment="HorizontalAlignment.Center" Class="mb-4">
+        @StatusMessage
+    </MudAlert>
 }
 
 @code {
@@ -15,7 +13,7 @@
     public string StatusMessage { get; set; }
 
     [Parameter]
-    public string StatusColor { get; set; }
+    public string StatusColor { get; set; } = "bg-blue-500";
 
     private System.Timers.Timer statusTimer;
 

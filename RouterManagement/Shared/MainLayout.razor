@@ -1,63 +1,54 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 @inject IJSRuntime JS
 
 <PageTitle>RouterManagement</PageTitle>
 
-<div class="relative flex flex-col items-center justify-start p-4 dark:bg-gray-900 dark:text-white min-h-screen" id="app-container">
-    <StatusBanner StatusMessage="@StatusMessage" />
+<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" />
+<MudDialogProvider />
+<MudSnackbarProvider />
 
-    <div class="absolute top-4 right-4">
-        <button @onclick="ToggleDarkMode" class="px-4 py-2 rounded bg-gray-200 dark:bg-gray-800 dark:text-white">
-            @currentThemeText
-        </button>
-    </div>
-
-    <h2 class="text-5xl font-bold mb-4 text-sky-700 dark:text-sky-100">🌐 Router Hosts 🌐</h2>
-
-    @Body
-</div>
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudText Typo="Typo.h5" Class="ml-3">🌐 Router Hosts 🌐</MudText>
+        <MudSpacer />
+        <MudToggleIconButton @bind-Toggled="@_isDarkMode"
+                             Icon="@Icons.Material.Filled.DarkMode" Color="Color.Inherit" title="Switch to Dark Mode"
+                             ToggledIcon="@Icons.Material.Filled.LightMode" ToggledColor="Color.Inherit" />
+    </MudAppBar>
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+            <StatusBanner StatusMessage="@StatusMessage" />
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
 
 @code {
-    private bool isDarkMode;
-    private string currentThemeText;
+    private bool _isDarkMode;
     private bool _firstRender = true;
+    private bool _previousDarkMode;
 
-    private string StatusMessage { get; set; }
+    private string StatusMessage { get; set; } = string.Empty;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && _firstRender)
         {
             _firstRender = false;
-
-            // Check if dark mode is already enabled
+            
+            // Check if dark mode is already enabled in localStorage
             var theme = await JS.InvokeAsync<string>("localStorage.getItem", "theme");
-            isDarkMode = theme == "dark";
-            await UpdateTheme();
-            StateHasChanged(); // Re-render to reflect the theme changes
+            if (!string.IsNullOrEmpty(theme))
+            {
+                _isDarkMode = theme == "dark";
+            }
+            _previousDarkMode = _isDarkMode;
+            StateHasChanged();
         }
-    }
-
-    private async Task ToggleDarkMode()
-    {
-        isDarkMode = !isDarkMode;
-        await UpdateTheme();
-
-        // Store the preference in localStorage
-        await JS.InvokeVoidAsync("localStorage.setItem", "theme", isDarkMode ? "dark" : "light");
-    }
-
-    private async Task UpdateTheme()
-    {
-        currentThemeText = isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode";
-
-        if (isDarkMode)
+        else if (!_firstRender && _previousDarkMode != _isDarkMode)
         {
-            await JS.InvokeVoidAsync("document.documentElement.classList.add", "dark");
-        }
-        else
-        {
-            await JS.InvokeVoidAsync("document.documentElement.classList.remove", "dark");
+            _previousDarkMode = _isDarkMode;
+            await JS.InvokeVoidAsync("localStorage.setItem", "theme", _isDarkMode ? "dark" : "light");
         }
     }
 
