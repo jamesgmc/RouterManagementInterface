@@ -2,7 +2,9 @@
 @using RouterManagement.Data
 @using RouterManagement.Data.Models
 @using RouterManagement.Data.Services
+@using Microsoft.AspNetCore.SignalR.Client
 @inject IHostManagementService hostManagementService
+@inject NavigationManager NavigationManager
 @implements IDisposable
 
 @if (_hostData != null && _hostData.Success)
@@ -117,9 +119,9 @@ else
 
 @code {
     #region Fields
-    private RouterHosts _hostData;
+    private RouterHosts? _hostData;
     private int _counter = 1;
-    private Timer _timer;
+    private HubConnection? _hubConnection;
     private string _sortColumn = "Counter";
     private bool _sortAscending = true;
     #endregion
@@ -128,22 +130,24 @@ else
     protected override async Task OnInitializedAsync()
     {
         _hostData = await hostManagementService.GetDevicesAsync();
-        _timer = new Timer(async _ => await UpdateHostPacketCounters(), null, 0, 5000);
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/hostUpdateHub"))
+            .Build();
+
+        _hubConnection.On<RouterHosts>("ReceiveHostUpdates", (updatedHostData) =>
+        {
+            _hostData = updatedHostData;
+            InvokeAsync(StateHasChanged);
+        });
+
+        await _hubConnection.StartAsync();
     }
     #endregion
 
     #region Dispose
     public void Dispose()
     {
-        _timer?.Dispose();
-    }
-    #endregion
-
-    #region Host Packet Counters
-    private async Task UpdateHostPacketCounters()
-    {
-        await hostManagementService.HostPacketCountersAsync(_hostData);
-        await InvokeAsync(StateHasChanged);
+        _ = _hubConnection?.StopAsync();
     }
     #endregion
 
@@ -195,6 +199,8 @@ else
     #region Sort Table Columns
     private void SortTable(string column)
     {
+        if (_hostData == null) return;
+
         if (_sortColumn == column)
         {
             _sortAscending = !_sortAscending;
@@ -212,7 +218,8 @@ else
 
     private object GetPropertyValue(RouterHost host, string propertyName)
     {
-        return typeof(RouterHost).GetProperty(propertyName).GetValue(host);
+        var property = typeof(RouterHost).GetProperty(propertyName);
+        return property?.GetValue(host) ?? "";
     }
     #endregion
 }
