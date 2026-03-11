@@ -131,7 +131,7 @@ else
     {
         _hostData = await hostManagementService.GetDevicesAsync();
         _hubConnection = new HubConnectionBuilder()
-            .WithUrl(NavigationManager.ToAbsoluteUri("/hostUpdateHub"))
+            .WithUrl(new Uri("http://localhost:8080/hostUpdateHub"))
             .Build();
 
         _hubConnection.On<RouterHosts>("ReceiveHostUpdates", (updatedHostData) =>
