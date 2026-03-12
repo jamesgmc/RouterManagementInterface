@@ -2,8 +2,10 @@
 @using RouterManagement.Data
 @using RouterManagement.Data.Models
 @using RouterManagement.Data.Services
+@using RouterManagement.Services
 @using Microsoft.AspNetCore.SignalR.Client
 @inject IHostManagementService hostManagementService
+@inject StatusService statusService
 @inject NavigationManager NavigationManager
 @implements IDisposable
 
@@ -113,7 +115,12 @@ else
     }
     else
     {
-        <p>@_hostData.Error</p>
+        <div class="flex flex-col items-center justify-center p-8 bg-gray-100 dark:bg-gray-800 rounded mt-4">
+            <p class="text-red-500 font-bold mb-4">@_hostData.Error</p>
+            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" @onclick="RetryConnection">
+                Retry
+            </button>
+        </div>
     }
 }
 
@@ -129,9 +136,10 @@ else
     #region OnInitializedAsync
     protected override async Task OnInitializedAsync()
     {
-        _hostData = await hostManagementService.GetDevicesAsync();
+        await LoadDataAsync();
+        
         _hubConnection = new HubConnectionBuilder()
-            .WithUrl(new Uri("http://localhost:8080/hostUpdateHub"))
+            .WithUrl(NavigationManager.ToAbsoluteUri("/hostUpdateHub"))
             .Build();
 
         _hubConnection.On<RouterHosts>("ReceiveHostUpdates", (updatedHostData) =>
@@ -140,7 +148,39 @@ else
             InvokeAsync(StateHasChanged);
         });
 
-        await _hubConnection.StartAsync();
+        try
+        {
+            await _hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error connecting to hub: {ex.Message}");
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _hostData = null;
+        StateHasChanged();
+        
+        _hostData = await hostManagementService.GetDevicesAsync();
+        if (_hostData != null && _hostData.Success)
+        {
+            statusService.IsServiceDown = false;
+        }
+    }
+
+    private async Task RetryConnection()
+    {
+        await LoadDataAsync();
+        if (_hostData != null && _hostData.Success && _hubConnection?.State == HubConnectionState.Disconnected)
+        {
+            try
+            {
+                await _hubConnection.StartAsync();
+            }
+            catch (Exception) { }
+        }
     }
     #endregion
 

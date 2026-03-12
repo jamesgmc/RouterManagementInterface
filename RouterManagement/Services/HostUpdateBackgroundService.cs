@@ -20,9 +20,26 @@ public class HostUpdateBackgroundService : BackgroundService
         {
             using (var scope = _serviceProvider.CreateScope())
             {
+                var statusService = scope.ServiceProvider.GetRequiredService<StatusService>();
+                if (statusService.IsServiceDown)
+                {
+                    await Task.Delay(5000, stoppingToken);
+                    continue;
+                }
+
                 var hostManagementService = scope.ServiceProvider.GetRequiredService<IHostManagementService>();
                 var hostData = await hostManagementService.GetDevicesAsync();
-                await hostManagementService.HostPacketCountersAsync(hostData);
+                
+                if (hostData != null && !hostData.Success)
+                {
+                    statusService.IsServiceDown = true;
+                }
+
+                if (hostData != null && hostData.Success)
+                {
+                    await hostManagementService.HostPacketCountersAsync(hostData);
+                }
+
                 await _hubContext.Clients.All.SendAsync("ReceiveHostUpdates", hostData);
             }
 
