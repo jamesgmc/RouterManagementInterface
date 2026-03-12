@@ -17,11 +17,13 @@ WORKDIR "/src/RouterManagement"
 RUN npm ci
 RUN npm run build:css
 
+ARG APP_VERSION=1.0.0
 # Build .NET application
-RUN dotnet build "RouterManagement.csproj" -c Release -o /app/build
+RUN dotnet build "RouterManagement.csproj" -c Release -p:Version=${APP_VERSION} -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "RouterManagement.csproj" -c Release -o /app/publish /p:UseAppHost=false
+ARG APP_VERSION=1.0.0
+RUN dotnet publish "RouterManagement.csproj" -c Release -p:Version=${APP_VERSION} -o /app/publish /p:UseAppHost=false
 
 # Use .NET 10.0 ASP.NET runtime image for the runtime environment
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
