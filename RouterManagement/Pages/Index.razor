@@ -161,6 +161,8 @@ else
                 .GroupBy(h => h.Mac)
                 .Select(g => g.First())
                 .ToList();
+            // Apply current sort to the updated data
+            ApplySortToData(updatedHostData);
             _hostData = updatedHostData;
             InvokeAsync(StateHasChanged);
         });
@@ -188,6 +190,7 @@ else
                 .GroupBy(h => h.Mac)
                 .Select(g => g.First())
                 .ToList();
+            ApplySortToData(_hostData);
             statusService.IsServiceDown = false;
         }
     }
@@ -273,9 +276,16 @@ else
             _sortAscending = true;
         }
 
-        _hostData.HostList = _sortAscending
-            ? _hostData.HostList.OrderBy(x => GetPropertyValue(x, column)).ToList()
-            : _hostData.HostList.OrderByDescending(x => GetPropertyValue(x, column)).ToList();
+        ApplySortToData(_hostData);
+    }
+
+    private void ApplySortToData(RouterHosts data)
+    {
+        if (data == null || string.IsNullOrEmpty(_sortColumn) || _sortColumn == "Counter") return;
+
+        data.HostList = _sortAscending
+            ? data.HostList.OrderBy(x => GetPropertyValue(x, _sortColumn)).ToList()
+            : data.HostList.OrderByDescending(x => GetPropertyValue(x, _sortColumn)).ToList();
     }
 
     private object GetPropertyValue(RouterHost host, string propertyName)
