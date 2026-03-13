@@ -72,8 +72,20 @@
                         <span>@(_sortAscending ? "↑" : "↓")</span>
                     }
                 </th>
-                <th class="px-4 py-2 text-center cursor-pointer">Packets Received</th>
-                <th class="px-4 py-2 text-center cursor-pointer">Packets Sent</th>
+                <th class="px-4 py-2 text-center cursor-pointer" @onclick="() => SortTable(nameof(RouterHost.PacketCountReceived))">
+                    Packets Received
+                    @if (_sortColumn == nameof(RouterHost.PacketCountReceived))
+                    {
+                        <span>@(_sortAscending ? "↑" : "↓")</span>
+                    }
+                </th>
+                <th class="px-4 py-2 text-center cursor-pointer" @onclick="() => SortTable(nameof(RouterHost.PacketCountSent))">
+                    Packets Sent
+                    @if (_sortColumn == nameof(RouterHost.PacketCountSent))
+                    {
+                        <span>@(_sortAscending ? "↑" : "↓")</span>
+                    }
+                </th>
             </tr>
         </thead>
 
@@ -144,6 +156,11 @@ else
 
         _hubConnection.On<RouterHosts>("ReceiveHostUpdates", (updatedHostData) =>
         {
+            // Remove duplicates based on MAC address
+            updatedHostData.HostList = updatedHostData.HostList
+                .GroupBy(h => h.Mac)
+                .Select(g => g.First())
+                .ToList();
             _hostData = updatedHostData;
             InvokeAsync(StateHasChanged);
         });
@@ -166,6 +183,11 @@ else
         _hostData = await hostManagementService.GetDevicesAsync();
         if (_hostData != null && _hostData.Success)
         {
+            // Remove duplicates based on MAC address
+            _hostData.HostList = _hostData.HostList
+                .GroupBy(h => h.Mac)
+                .Select(g => g.First())
+                .ToList();
             statusService.IsServiceDown = false;
         }
     }
