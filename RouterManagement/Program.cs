@@ -42,5 +42,6 @@ app.UseStaticFiles();
 app.UseRouting();
 app.MapBlazorHub();
 app.MapHub<HostUpdateHub>("/hostUpdateHub");
+app.MapGet("/healthcheck", () => Results.Ok(new { status = "up" }));
 app.MapFallbackToPage("/_Host");
 app.Run();
